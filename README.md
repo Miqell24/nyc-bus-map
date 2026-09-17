@@ -3,7 +3,8 @@
 Interactive, poster-grade map of public transport in **New York and its
 region**: every MTA bus of the five boroughs and the MTA Bus Company, NICE in
 Nassau County, NJ Transit's buses in the Hudson–Essex core of New Jersey
-(Jersey City, Hoboken, Newark), the subway, PATH, the Hudson-Bergen and
+(Jersey City, Hoboken, Newark), the Bee-Line in Westchester north of the
+Bronx, the subway, PATH, the Hudson-Bergen and
 Newark light rail, the Staten Island Railway, the Long Island Rail Road and
 Metro-North — drawn along the real street and track geometry.
 
@@ -12,7 +13,7 @@ Metro-North — drawn along the real street and track geometry.
 **https://agcghub.github.io/nyc-bus-map/** — GitHub Pages serves
 `main:/docs`; local build on port 8182 (`npm run serve`).
 
-Thirteen feeds, one network:
+Fourteen feeds, one network:
 
 | feed | source | on the map | route_type | graph |
 |---|---|---|---|---|
@@ -21,6 +22,7 @@ Thirteen feeds, one network:
 | NICE (Nassau) | nicebus.com | all 45 | 3 | OSM roadways |
 | NJ Transit bus | MobilityDatabase mirror (mdb-508) | 74 lines of the Hudson–Essex core (`pipeline/scope.mjs`) | 3 | OSM roadways |
 | NJ Transit rail | MobilityDatabase mirror (mdb-509) | HBLR and Newark Light Rail only, family red | 0 | `railway=light_rail` |
+| Westchester Bee-Line | 511NY data tools bucket (mirror mdb-2353) | all 59 lines, Yonkers and the Bronx subway terminals to White Plains and Peekskill | 3 | OSM roadways |
 | subway | MTA S3 bucket | all 28 routes in the MTA's trunk colours | 1 | `railway=subway` |
 | PATH | Trillium | all 7 services in PATH's colours | 2 | `railway=subway` |
 | Staten Island Railway | in the subway feed | SIR | 2 | `railway=rail` |
@@ -49,9 +51,10 @@ already draws); the River Line (Camden–Trenton); NYC Ferry, the Staten
 Island Ferry and NY Waterway (the engine has no water graph).
 
 **Line keys.** Every New York bus number already carries its borough letter
-(M1, Bx1, B1, Q1, S40) and NICE writes n1–n80, so the only clash on the whole
-map is NJ Transit's 1–99 against the subway's 1–7: the NJT keys carry an
-`NJ` prefix and print the bare number the bus shows. The subway is keyed by
+(M1, Bx1, B1, Q1, S40) and NICE writes n1–n80; the bare numbers of NJ
+Transit (1–99, against the subway's 1–7) and of the Bee-Line (1–91, against
+NJ Transit's) carry an `NJ` / `BL` prefix in the key and print the bare
+number the bus shows. The subway is keyed by
 `route_id` because three shuttles share the short name "S" (GS, FS, H — all
 print S); PATH by the terminal pairs its own map prints (HOB-33, JSQ-33,
 NWK-WTC…); the LIRR by branch name without "Branch"; Metro-North by line
@@ -63,12 +66,14 @@ Hudson green, Harlem blue and New Haven red, the SIR blue. Buses are the
 family's navy whatever the feed paints them; the light rail is the family's
 red.
 
-**Names.** The MTA bus feeds and NJ Transit shout ("WILLIS AV/E 138 ST",
-"MAIN ST AT ADAMS AVE", headsigns included); `usName` brings a fully
-uppercase name to title case, keeps the abbreviations the pole flags use (Av,
-St, Blvd, Pkwy…) and the acronyms that are names (JFK, LGA, NYU), and leaves
-mixed-case names alone. NJ Transit's headsigns also drop their route number
-and fare note.
+**Names.** The MTA bus feeds, NJ Transit and the Bee-Line shout ("WILLIS
+AV/E 138 ST", "MAIN ST AT ADAMS AVE", headsigns included); `usName` brings a
+fully uppercase name to title case, keeps the abbreviations the pole flags
+use (Av, St, Blvd, Pkwy…) and the acronyms that are names (JFK, LGA, NYU),
+and leaves mixed-case names alone. NJ Transit's headsigns also drop their
+route number and fare note. The Bee-Line leaves `trip_headsign` empty on
+seven trips in ten; where the feed is silent the last stop of the drawn
+pattern is the headsign — that is what the destination blind says.
 
 **Branches.** The subway and the HBLR use `allVariants`: the A alone has
 three ends, the 5 two, and the HBLR is one route with three services, so the
@@ -78,10 +83,11 @@ whole.
 
 ## Pipeline
 
-`npm run download` fetches the thirteen feeds, computes the NJ Transit scope
+`npm run download` fetches the fourteen feeds, computes the NJ Transit scope
 and cuts the OSM extracts. **The OSM data comes from Geofabrik, not
 Overpass**: the road grid covers the five boroughs, Nassau and the
-Hudson–Essex core (52 × 85 km), the rail file reaches Montauk, Poughkeepsie
+Hudson–Essex core (52 × 85 km) plus Westchester up to Peekskill on nine more
+tiles, the rail file reaches Montauk, Poughkeepsie
 and New Haven with the LIRR and Metro-North (150 × 210 km), and
 `pipeline/pbf-tiles.py` (needs `pip3 install --user osmium`) reads the New
 York, New Jersey and Connecticut extracts in one pass, writing exactly the
@@ -93,6 +99,11 @@ writes GeoJSON to `data/out/`; `npm run lines` adds the line-by-line view;
 <http://localhost:8182>.
 
 Data: MTA (New York City Transit, MTA Bus, Long Island Rail Road,
-Metro-North Railroad) · Nassau Inter-County Express · NJ Transit · Port
-Authority Trans-Hudson · base map © OpenFreeMap / OpenMapTiles /
-OpenStreetMap contributors.
+Metro-North Railroad) · Nassau Inter-County Express · NJ Transit · Westchester
+County Bee-Line System · Port Authority Trans-Hudson · base map ©
+OpenFreeMap / OpenMapTiles / OpenStreetMap contributors.
+
+## 17.09.2026 — requested fixes
+
+- **Bus lists borough by borough.** Every list the map prints — the panel, the number rows along the streets, the terminus badges — now runs: the lines with a bare borough letter first, M, B, Bx, Q, S, then NICE's n; the two-letter express families next in the same order (BM, BxM, QM, SIM, then the X expresses); and the bare numbers last — NJ Transit, then the Bee-Line. Rail keys are untouched.
+- **Westchester's Bee-Line added.** All 59 lines north of the Bronx, from the Yonkers and 242 St / Bedford Park subway terminals up to White Plains and Peekskill, on nine new OSM tiles (`pipeline/pbf-tiles.py`, t26–t34). Keys `BL…`, printed bare. Directions without a `trip_headsign` are named after their last stop.

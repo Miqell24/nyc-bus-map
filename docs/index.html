@@ -126,7 +126,7 @@
     <li class="lines-only"><span class="sw bundle"><i></i><i></i><i></i><i></i></span> Up to 4 lines: each on its own, in its own colour</li>
     <li class="lines-only"><span class="sw trunk"></span> 5 or more: one grey stroke, its numbers beside it</li>
     <li><label><input type="checkbox" id="toggle-bus" checked> <span class="sw line corridor-only"></span> Bus routes</label></li>
-    <li class="sublegend corridor-only">Every bus with the number the pole shows: New York City Transit and MTA Bus by borough letter (M, Bx, B, Q, S) with the expresses (X, BM, BxM, QM, SIM), NICE in Nassau (n1&ndash;n80), and NJ Transit in the Hudson&ndash;Essex core &mdash; Newark, Jersey City, Hoboken, Bayonne, Union City &mdash; printed bare as the bus shows them. All in the family&rsquo;s navy.</li>
+    <li class="sublegend corridor-only">Every bus with the number the pole shows, listed borough by borough: New York City Transit and MTA Bus (M, B, Bx, Q, S), NICE in Nassau (n1&ndash;n80), then the expresses (BM, BxM, QM, SIM, X), and last the bare numbers of NJ Transit in the Hudson&ndash;Essex core &mdash; Newark, Jersey City, Hoboken, Bayonne, Union City &mdash; and of the Bee-Line in Westchester, north of the Bronx up to Peekskill. All in the family&rsquo;s navy.</li>
     <li><label><input type="checkbox" id="toggle-tram" checked> <span class="sw line corridor-only metro"></span> Subway, PATH, light rail &amp; commuter rail</label></li>
         <li class="sublegend corridor-only"><span class="mini tram"></span>Light rail in the family&rsquo;s red: the Hudson-Bergen Light Rail and the Newark Light Rail.</li>
     <li class="sublegend corridor-only">The subway in the MTA&rsquo;s trunk colours, as the feed ships them: <span class="mini" style="background:#0062CF"></span>A C E <span class="mini" style="background:#EB6800"></span>B D F M <span class="mini" style="background:#799534"></span>G <span class="mini" style="background:#8E5C33"></span>J Z <span class="mini" style="background:#7C858C"></span>L S <span class="mini" style="background:#F6BC26"></span>N Q R W <span class="mini" style="background:#D82233"></span>1 2 3 <span class="mini" style="background:#009952"></span>4 5 6 <span class="mini" style="background:#9A38A1"></span>7 <span class="mini" style="background:#08179C"></span>SIR; PATH in its four colours; the LIRR branches and the Metro-North lines in the colours of their own maps (Hudson green, Harlem blue, New Haven red).</li>
@@ -167,11 +167,11 @@
     <button id="export-area" title="Drag a rectangle on the map; that area is rendered as a large print-quality PNG">Export PNG — select area</button>
     <button id="export-atlas" title="The ENTIRE network as one poster-grade PNG at ~65 000 px on the long edge, streamed together in the browser (takes several minutes, keep the tab open)">Export PNG — whole map</button>
   </div>
-  <div id="footer">Data: MTA (NYCT, MTA Bus, LIRR, Metro-North) &middot; NICE &middot; NJ Transit &middot; PATH &middot; OpenStreetMap &middot; <span id="stamp"></span></div>
+  <div id="footer">Data: MTA (NYCT, MTA Bus, LIRR, Metro-North) &middot; NICE &middot; NJ Transit &middot; Westchester Bee-Line &middot; PATH &middot; OpenStreetMap &middot; <span id="stamp"></span></div>
   <label class="debug"><input type="checkbox" id="toggle-shape"> show raw GTFS shapes (QA)</label>
 </aside>
 <script src="vendor/maplibre-gl.js"></script>
-<script src="app.js?v=20260911n"></script>
+<script src="app.js?v=20260917b"></script>
 <script src="pdf-export.js?v=20260911a"></script>
 <script>
 (() => {

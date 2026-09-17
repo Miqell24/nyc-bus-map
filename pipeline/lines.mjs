@@ -45,7 +45,11 @@ const nk = (c) => c[0].toFixed(6) + ',' + c[1].toFixed(6);
 
 // line numbers sort like a timetable, not like strings (build.mjs convention)
 const keyParts = (s) => { const m = /^(\D*)(\d*)(.*)$/.exec(s); return [m[1], m[2] ? Number(m[2]) : Infinity, m[3]]; };
-const numSort = (a, b) => { const A = keyParts(a), B = keyParts(b); return A[0].localeCompare(B[0]) || (A[1] - B[1]) || A[2].localeCompare(B[2]); };
+// the borough order of build.mjs (17.09.2026): M, B, Bx, Q, S, n — the
+// expresses BM, BxM, QM, SIM, X — the bare numbers of NJ Transit and the Bee-Line
+const FAMILY = { M: 0, B: 1, Bx: 2, Q: 3, S: 4, n: 5, BM: 10, BxM: 11, QM: 12, SIM: 13, X: 14 };
+const familyRank = (k) => { if (/^NJ/.test(k)) return 20; if (/^BL\d/.test(k)) return 21; if (/^(ELFX|PWS)$/.test(k)) return 6; const [p, n] = keyParts(k); return n === Infinity ? 30 : (FAMILY[p] ?? 30); };
+const numSort = (a, b) => { const A = keyParts(a), B = keyParts(b); return familyRank(a) - familyRank(b) || A[0].localeCompare(B[0]) || (A[1] - B[1]) || A[2].localeCompare(B[2]); };
 
 // ---------- colour: CIE-Lab, so "different enough" is a measurable distance ----------
 function lab2rgb(L, a, b) {

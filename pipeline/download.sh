@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# Downloads input data: thirteen GTFS feeds, three OSM extracts (Geofabrik), MapLibre GL.
+# Downloads input data: fourteen GTFS feeds, three OSM extracts (Geofabrik), MapLibre GL.
 # Everything is cached — re-running only fetches what is missing.
 #
 # New York: the MTA serves its feeds from an S3 bucket (no key), NICE from its
 # own site, PATH from Trillium; NJ Transit's are behind a developer login on
 # njtransit.com, so they come from the MobilityDatabase mirror (mdb-508 bus,
 # mdb-509 rail — files.mobilitydatabase.org serves them without a token).
+# Westchester's Bee-Line (17.09.2026) from the 511NY data tools bucket — the
+# county's own planning.westchestergov.com link times out from here.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p data/osm/tiles web/vendor
@@ -42,6 +44,7 @@ feed nice   https://www.nicebus.com/NICE/media/nicebus-gtfs/NICE_GTFS.zip $MDB/m
 feed njbus  $MDB/mdb-508/latest.zip $MDB/mdb-508/latest.zip
 feed njrail $MDB/mdb-509/latest.zip $MDB/mdb-509/latest.zip
 feed path   https://data.trilliumtransit.com/gtfs/path-nj-us/path-nj-us.zip $MDB/mdb-517/latest.zip
+feed beeline https://s3.amazonaws.com/datatools-511ny/public/Westchester_County_Bee-Line_System.zip $MDB/mdb-2353/latest.zip
 
 # 1b) scope: which of the 263 NJ Transit bus lines belong on a NEW YORK map
 if [ ! -f data/scope.json ]; then
@@ -50,12 +53,13 @@ fi
 
 # 2) OSM — from the Geofabrik extracts, not Overpass. The road grid covers
 #    the five boroughs, Nassau and the Hudson–Essex core (52 × 85 km, more
-#    than the public mirrors serve in one go); the rail file reaches Montauk,
+#    than the public mirrors serve in one go) plus Westchester up to Peekskill
+#    on nine more tiles (t26–t34); the rail file reaches Montauk,
 #    Poughkeepsie and New Haven with the LIRR and Metro-North, so three
 #    state extracts are read in one pass. pipeline/pbf-tiles.py writes exactly
 #    the JSON shape Overpass would have returned (ways with tags, NODE IDS and
 #    geometry — buildGraph silently drops ways without el.nodes).
-if [ ! -f data/osm/tiles/t25.json ] || [ ! -f data/osm/nyc-rail.json ]; then
+if [ ! -f data/osm/tiles/t34.json ] || [ ! -f data/osm/nyc-rail.json ]; then
   need_osmium
   for st in new-york new-jersey connecticut; do
     if [ ! -f "data/$st-latest.osm.pbf" ]; then

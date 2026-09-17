@@ -60,9 +60,23 @@ const keyParts = (s) => {
   const m = /^(\D*)(\d*)(.*)$/.exec(s);
   return [m[1], m[2] ? Number(m[2]) : Infinity, m[3]];
 };
+// Bus lists in the borough order the user set (17.09.2026): the lines that
+// print a bare borough letter first — M, B, Bx, Q, S, then NICE's n — the
+// two-letter express families next in the same order (BM, BxM, QM, SIM, the
+// X expresses), and the bare numbers of NJ Transit and the Bee-Line last.
+// Rail keys (subway letters, PATH pairs, branch names) carry no digits or no
+// letter family and sort as before, among themselves.
+const FAMILY = { M: 0, B: 1, Bx: 2, Q: 3, S: 4, n: 5, BM: 10, BxM: 11, QM: 12, SIM: 13, X: 14 };
+const familyRank = (k) => {
+  if (/^NJ/.test(k)) return 20;
+  if (/^BL\d/.test(k)) return 21;
+  if (/^(ELFX|PWS)$/.test(k)) return 6;   // NICE's lettered shuttles close the n family
+  const [p, n] = keyParts(k);
+  return n === Infinity ? 30 : (FAMILY[p] ?? 30);
+};
 const numSort = (a, b) => {
   const A = keyParts(a), B = keyParts(b);
-  return A[0].localeCompare(B[0]) || (A[1] - B[1]) || A[2].localeCompare(B[2]);
+  return familyRank(a) - familyRank(b) || A[0].localeCompare(B[0]) || (A[1] - B[1]) || A[2].localeCompare(B[2]);
 };
 function round6(v) { return Math.round(v * 1e6) / 1e6; }
 // dark variant for feed-supplied line colors (badge rims / terminus fills)
@@ -184,11 +198,12 @@ const busList = busArgs.filter((a) => a !== '--all');
 //
 // Buses: the five NYCT borough feeds (route_type 3 — the 711s are the
 // subway shuttle buses B90, D99, J90…, rail replacement, not lines), the
-// MTA Bus Company, NICE, and the NJ Transit lines of the allowlist. Every
-// New York number already carries its borough letter (M1, Bx1, B1, Q1, S40)
-// and NICE writes n1–n80, so the only clash on the whole map is NJ Transit's
-// 1–99 against the subway's 1–7: the NJT keys carry an "NJ" prefix and
-// print the bare number the bus shows (LBL).
+// MTA Bus Company, NICE, the NJ Transit lines of the allowlist and, since
+// 17.09.2026, Westchester's Bee-Line north of the Bronx. Every New York
+// number already carries its borough letter (M1, Bx1, B1, Q1, S40) and NICE
+// writes n1–n80; the bare numbers of NJ Transit (1–99 against the subway's
+// 1–7) and of the Bee-Line (1–91, against NJ Transit's) carry an "NJ" / "BL"
+// prefix in the key and print the bare number the bus shows (LBL).
 //
 // Rail: the subway keyed by route_id (three shuttles share the short name
 // "S" — GS, FS and H print "S"), PATH keyed by the terminal pairs its own map
@@ -320,15 +335,23 @@ const boroughFeed = (tag) => ({
 const MODES = [{
   mode: 'bus', label: 'buses', graphMode: 'road',
   // the five boroughs, Nassau and the Hudson–Essex core — 5 × 5 tiles cut out
-  // of the Geofabrik extracts (see pipeline/pbf-tiles.py); merged at load,
-  // ways deduped by id
-  osmFiles: Array.from({ length: 25 }, (_, i) => `data/osm/tiles/t${i + 1}.json`),
+  // of the Geofabrik extracts (see pipeline/pbf-tiles.py) — and, since
+  // 17.09.2026, Westchester up to Peekskill on 3 × 3 more (t26–t34); merged
+  // at load, ways deduped by id
+  osmFiles: Array.from({ length: 34 }, (_, i) => `data/osm/tiles/t${i + 1}.json`),
   color: '#0059a9', colorDark: '#00294f',
   all: busAll, lines: busList.length ? busList : (busAll ? [] : ['M1']),
   feeds: [
     boroughFeed('m'), boroughFeed('bx'), boroughFeed('b'), boroughFeed('q'), boroughFeed('si'),
     { tag: 'busco', dir: 'data/gtfs-busco', routeTypes: ['3'], mapKey: (sn) => sn || null, nameFix: usName },
     { tag: 'nice', dir: 'data/gtfs-nice', routeTypes: ['3'], mapKey: (sn) => sn || null, nameFix: plainName },
+    // Westchester's Bee-Line (17.09.2026), all 60 lines from Yonkers and the
+    // Bronx subway terminals up to Peekskill — the numbers clash with NJ
+    // Transit's (both run a 1, a 2, a 5…), so the keys carry "BL" and print
+    // bare, as NJ Transit's do
+    { tag: 'bee', dir: 'data/gtfs-beeline', routeTypes: ['3'],
+      mapKey: (sn) => { if (!sn) return null; LBL.set('BL' + sn, sn); return 'BL' + sn; },
+      nameFix: usName },
     { tag: 'nj', dir: 'data/gtfs-njbus', routeTypes: ['3'],
       skipRoute: (r) => !S_NJ.has(r.route_id),
       mapKey: (sn) => { if (!sn) return null; LBL.set('NJ' + sn, sn); return 'NJ' + sn; },
@@ -613,7 +636,7 @@ async function processMode(cfg) {
           for (const [shapeId, e] of byCount) {
             feedReps.push({
               line: L, dir, shapeId, feedTag: feed.tag,
-              headsign: e.trips[0]?.headsign || '',
+              headsign: e.trips.find((x) => x.headsign)?.headsign || '',
               candTrips: new Set(e.trips.map((x) => x.trip_id)),
               variants: m.size, tripCount: e.count,
             });
@@ -643,7 +666,7 @@ async function processMode(cfg) {
         }
         feedReps.push({
           line: L, dir, shapeId: best.shapeId, feedTag: feed.tag,
-          headsign: best.e.trips[0]?.headsign || '',
+          headsign: best.e.trips.find((x) => x.headsign)?.headsign || '',
           candTrips: new Set(best.e.trips.map((x) => x.trip_id)),
           variants: m.size, tripCount: best.e.count,
         });
@@ -816,6 +839,16 @@ async function processMode(cfg) {
         r.shapeLatLon = r.shapeLatLon.slice(i0, i1 + 1);
       }
     }
+    // The Bee-Line leaves trip_headsign empty on seven trips in ten: where
+    // the feed is silent the last stop of the drawn pattern IS the headsign —
+    // that is what the destination blind says (the Swedish feeds' rule).
+    let blind = 0;
+    for (const r of feedReps) {
+      if (r.headsign || !r.stopSeq?.length) continue;
+      r.headsign = stopsById.get(r.stopSeq[r.stopSeq.length - 1].stopId)?.name || '';
+      blind++;
+    }
+    if (blind) log(`feed ${feed.tag}: ${blind} directions named after their last stop (no trip_headsign)`);
     log(`feed ${feed.tag}: ${new Set(feedReps.map((r) => r.line)).size} lines, ${feedReps.length} reps` +
         (hasShapes ? '' : ' (no shapes — stop-sequence pseudo)'));
     reps.push(...feedReps);

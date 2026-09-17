@@ -20,9 +20,13 @@ PBFS = [os.path.join(ROOT, 'data', f'{st}-latest.osm.pbf') for st in ('new-york'
 
 # must match pipeline/download.sh and build.mjs
 S, N, W, E = 40.48, 40.95, -74.40, -73.40
+# Westchester (the Bee-Line, 17.09.2026): a second grid north of the Bronx
+# line — tiles 26–34, 3 × 3 over Yonkers, White Plains and Peekskill. Only the
+# New York extract is read when nothing else is missing.
+NS, NN, NW, NE = 40.95, 41.45, -74.05, -73.55
 RAIL_BOX = (40.48, -74.40, 41.85, -71.85)
-# the pre-filter below must admit anything inside EITHER box
-FS, FW, FN, FE = min(S, RAIL_BOX[0]), min(W, RAIL_BOX[1]), max(N, RAIL_BOX[2]), max(E, RAIL_BOX[3])
+# the pre-filter below must admit anything inside ANY box
+FS, FW, FN, FE = min(S, NS, RAIL_BOX[0]), min(W, NW, RAIL_BOX[1]), max(N, NN, RAIL_BOX[2]), max(E, NE, RAIL_BOX[3])
 
 HW = re.compile(r'^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|living_street|service|busway|construction|motorway_link|trunk_link|primary_link|secondary_link|tertiary_link)$')
 RAIL = re.compile(r'^(subway|tram|light_rail|rail|construction)$')
@@ -35,11 +39,20 @@ for i in range(1, 26):
     row, col = (i - 1) // 5, (i - 1) % 5
     road_tiles[i] = (S + (N - S) * row / 5, S + (N - S) * (row + 1) / 5,
                      W + (E - W) * col / 5, W + (E - W) * (col + 1) / 5)
+for i in range(26, 35):
+    f = os.path.join(ROOT, f'data/osm/tiles/t{i}.json')
+    if os.path.exists(f):
+        continue
+    row, col = (i - 26) // 3, (i - 26) % 3
+    road_tiles[i] = (NS + (NN - NS) * row / 3, NS + (NN - NS) * (row + 1) / 3,
+                     NW + (NE - NW) * col / 3, NW + (NE - NW) * (col + 1) / 3)
 rail_file = os.path.join(ROOT, 'data/osm/nyc-rail.json')
 need_rail = not os.path.exists(rail_file)
 print('brakujące kafle dróg:', sorted(road_tiles), '| szyny:', need_rail, flush=True)
 if not road_tiles and not need_rail:
     sys.exit(0)
+if not need_rail and all(i >= 26 for i in road_tiles):
+    PBFS = PBFS[:1]  # Westchester is New York State
 os.makedirs(os.path.join(ROOT, 'data/osm/tiles'), exist_ok=True)
 
 out = {i: [] for i in road_tiles}
